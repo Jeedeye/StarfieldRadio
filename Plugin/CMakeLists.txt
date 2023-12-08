@@ -3,12 +3,13 @@ cmake_minimum_required(VERSION 3.21)
 # info
 project(
 	StarfieldRadio
-	VERSION 1.0.0
+	VERSION 2.0.0
 	LANGUAGES CXX
 )
 
 # boiler
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/common.cmake)
+include(C:vcpkg/scripts/buildsystems/vcpkg.cmake)
 
 # in-place configuration
 configure_file(
