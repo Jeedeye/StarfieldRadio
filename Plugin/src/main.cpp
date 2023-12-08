@@ -2,8 +2,6 @@
 #include "DKUtil/Hook.hpp"
 #include "DKUtil/Logger.hpp"
 
-
-
 // For MCI
 #include <Mmsystem.h>
 #include <mciapi.h>
@@ -11,20 +9,19 @@
 
 // Formatting, string and console
 #include <codecvt>
+#include <ctime>
 #include <fstream>
+#include <iomanip>
+#include <iostream>
 #include <locale>
+#include <sstream>
 #include <string>
 #include <vector>
-#include <iostream>
-#include <sstream>
-#include <locale>
-#include <iomanip>
-#include <ctime>
 
 static bool gIsInitialized = false;
 
 // For type aliases
-using namespace DKUtil::Alias;  
+using namespace DKUtil::Alias;
 std::wstring to_wstring(const std::string& stringToConvert)
 {
 	std::wstring wideString =
@@ -34,7 +31,7 @@ std::wstring to_wstring(const std::string& stringToConvert)
 
 void ConsoleExecute(std::string command)
 {
-	static REL::Relocation<void**>                     BGSScaleFormManager{ REL::ID(879512) };
+	static REL::Relocation<void**>                       BGSScaleFormManager{ REL::ID(879512) };
 	static REL::Relocation<void (*)(void*, const char*)> ExecuteCommand{ REL::ID(166307) };
 	ExecuteCommand(*BGSScaleFormManager, command.data());
 }
@@ -48,13 +45,11 @@ void Notification(std::string Message)
 class RadioPlayer
 {
 public:
-	RadioPlayer(const std::vector<std::string>& InStations, bool InAutoStart, bool InRandomizeStartTime) 
-		: 
+	RadioPlayer(const std::vector<std::string>& InStations, bool InAutoStart, bool InRandomizeStartTime) :
 		AutoStart(InAutoStart),
 		RandomizeStartTime(InRandomizeStartTime),
 		Stations(InStations)
 	{
-		
 	}
 
 	~RadioPlayer()
@@ -64,7 +59,7 @@ public:
 	void Init()
 	{
 		INFO("{} v{} - Initializing Starfield Radio Sound System -", Plugin::NAME, Plugin::Version);
-	
+
 		if (Stations.size() <= 0) {
 			INFO("{} v{} - No Stations Found, Starfield Radio Shutting Down -", Plugin::NAME, Plugin::Version);
 			return;
@@ -74,24 +69,20 @@ public:
 
 		std::pair<std::string, std::string> StationInfo = GetStationInfo(Stations[0]);
 
-		if (StationInfo.second.contains("://"))
-		{
+		if (StationInfo.second.contains("://")) {
 			std::wstring OpenLocalFile = to_wstring(std::format("open {} type mpegvideo alias sfradio", StationInfo.second));
 			mciSendString(OpenLocalFile.c_str(), NULL, 0, NULL);
-		}
-		else
-		{
+		} else {
 			std::wstring OpenLocalFile = to_wstring(std::format("open \".\\Data\\SFSE\\Plugins\\StarfieldGalacticRadio\\tracks\\{}\" type mpegvideo alias sfradio", StationInfo.second));
 			mciSendString(OpenLocalFile.c_str(), NULL, 0, NULL);
-		}	
-		
+		}
+
 		if (!StationInfo.first.empty())
 			Notification(std::format("On Air - {}", StationInfo.first));
 
 		INFO("{} v{} - Selected Station {}, AutoStart: {}, Mode: {} -", Plugin::NAME, Plugin::Version, Stations[0], AutoStart, Mode);
 
-		if (AutoStart && Mode == 0) 
-		{
+		if (AutoStart && Mode == 0) {
 			IsStarted = true;
 			mciSendString(L"play sfradio repeat", NULL, 0, NULL);
 			mciSendString(L"setaudio sfradio volume to 0", NULL, 0, NULL);
@@ -113,17 +104,14 @@ public:
 
 		mciSendString(L"close sfradio", NULL, 0, NULL);
 
-		if (StationURL.contains("://"))
-		{
+		if (StationURL.contains("://")) {
 			std::wstring OpenLocalFile = to_wstring(std::format("open {} type mpegvideo alias sfradio", StationURL));
 			mciSendString(OpenLocalFile.c_str(), NULL, 0, NULL);
-		}
-		else
-		{
+		} else {
 			std::wstring OpenLocalFile = to_wstring(std::format("open \".\\Data\\SFSE\\Plugins\\StarfieldGalacticRadio\\tracks\\{}\" type mpegvideo alias sfradio", StationURL));
 			mciSendString(OpenLocalFile.c_str(), NULL, 0, NULL);
 		}
-				
+
 		if (!StationInfo.first.empty())
 			Notification(std::format("On Air - {}", StationInfo.first));
 
@@ -191,7 +179,7 @@ public:
 		// Get current position from MCI with mciSendString
 		std::wstring StatusBuffer;
 		StatusBuffer.reserve(128);
-		
+
 		mciSendString(L"status sfradio length", StatusBuffer.data(), 128, NULL);
 
 		// Convert Length to int
@@ -202,15 +190,12 @@ public:
 
 		int32_t Position = 0;
 
-		if (StatusBuffer.contains(L":"))
-		{
-			std::tm t;
+		if (StatusBuffer.contains(L":")) {
+			std::tm             t;
 			std::wistringstream ss(StatusBuffer);
 			ss >> std::get_time(&t, L"%H:%M:%S");
 			Position = t.tm_hour * 3600 + t.tm_min * 60 + t.tm_sec;
-		}
-		else
-		{
+		} else {
 			Position = std::stoi(StatusBuffer);
 		}
 
@@ -231,8 +216,7 @@ public:
 			IsStarted = true;
 			mciSendString(L"play sfradio repeat", NULL, 0, NULL);
 
-			if (RandomizeStartTime)
-			{
+			if (RandomizeStartTime) {
 				uint32_t TrackLength = GetTrackLength();
 				srand(time(NULL));
 				uint32_t RandomTime = rand() % TrackLength;
@@ -248,26 +232,18 @@ public:
 				Notification(std::format("On Air - {}", StationInfo.first));
 			else
 				Notification("Radio On");
-		}
-		else
+		} else
 			Notification("Radio Off");
 
-		if (Mode == 0) 
-		{
+		if (Mode == 0) {
 			std::wstring v = to_wstring(std::format("setaudio sfradio volume to {}", (int)IsPlaying ? Volume : 0.0f));
 			mciSendString(v.c_str(), NULL, 0, NULL);
-		}
-		else
-		{
-			if (!IsPlaying) 
-			{
+		} else {
+			if (!IsPlaying) {
 				mciSendString(L"stop sfradio", NULL, 0, NULL);
-			}
-			else
-			{
+			} else {
 				mciSendString(L"play sfradio repeat", NULL, 0, NULL);
-				if (RandomizeStartTime) 
-				{
+				if (RandomizeStartTime) {
 					uint32_t TrackLength = GetTrackLength();
 					srand(time(NULL));
 					uint32_t RandomTime = rand() % TrackLength;
@@ -292,7 +268,7 @@ public:
 	std::pair<std::string, std::string> GetStationInfo(const std::string& StationConfig)
 	{
 		std::string Station = StationConfig;
-		size_t Separator = Station.find("|");
+		size_t      Separator = Station.find("|");
 
 		std::string StationName = Separator != std::string::npos ? Station.substr(0, Station.find("|")) : "";
 		std::string StationURL = Separator != std::string::npos ? Station.substr(Station.find("|") + 1) : Station;
@@ -318,10 +294,10 @@ static DWORD MainLoop(void* unused)
 {
 	(void)unused;
 
-	ENABLE_DEBUG 
+	ENABLE_DEBUG
 
 	DEBUG("Input Loop Starting");
-	
+
 	TomlConfig            MainConfig = COMPILE_PROXY("StarfieldGalacticRadio.toml"sv);
 	Boolean               AutoStartData{ "AutoStartRadio" };
 	Boolean               RandomizeStartTimeData{ "RandomizeStartTime" };
@@ -336,14 +312,13 @@ static DWORD MainLoop(void* unused)
 	Integer               SeekBackwardKeyData{ "SeekBackwardKey" };
 	static std::once_flag Bound;
 	std::call_once(Bound, [&]() {
-		
-		MainConfig.Bind(AutoStartData, true);  // bool, no bool array support
-		MainConfig.Bind(RandomizeStartTimeData, false);                     // bool, no bool array support
+		MainConfig.Bind(AutoStartData, true);                                       // bool, no bool array support
+		MainConfig.Bind(RandomizeStartTimeData, false);                             // bool, no bool array support
 		MainConfig.Bind(PlaylistData, "kino.mp3", "soltrain.mp3", "nocturna.mp3");  // string array
 		MainConfig.Bind(ToggleRadioKeyData, VK_NUMPAD0);
 		MainConfig.Bind(SwitchModeKeyData, VK_SUBTRACT);
 		MainConfig.Bind(VolumeUpKeyData, VK_ADD);
-		MainConfig.Bind(VolumeDownKeyData, 0xB0); // NUMPAD ENTER
+		MainConfig.Bind(VolumeDownKeyData, 0xB0);  // NUMPAD ENTER
 		MainConfig.Bind(NextStationKeyData, VK_NUMPAD8);
 		MainConfig.Bind(PreviousStationKeyData, VK_NUMPAD7);
 		MainConfig.Bind(SeekForwardKeyData, VK_MULTIPLY);
@@ -383,7 +358,7 @@ static DWORD MainLoop(void* unused)
 		short SeekBackwardKeyState = SFSE::WinAPI::GetKeyState(*SeekBackwardKeyData);
 
 		//INFO("ToggleRadioKeyState: {}\nSwitchModeKeyState: {}\nVolumeUpKeyState: {}\nVolumeDownKeyState: {}\nNextStationKeyState: {}\nPrevStationKeyState: {}\nSeekForwardKeyState: {}\nSeekBackwardKeyState: {}", ToggleRadioKeyState, SwitchModeKeyState, VolumeUpKeyState, VolumeDownKeyState, NextStationKeyState, PrevStationKeyState, SeekForwardKeyState, SeekBackwardKeyState);
-	
+
 		// TODO: Handle this better
 		if (ToggleRadioHoldFlag && ToggleRadioKeyState >= 0)
 			ToggleRadioHoldFlag = 0;
@@ -393,17 +368,16 @@ static DWORD MainLoop(void* unused)
 			VolumeUpHoldFlag = 0;
 		if (VolumeDownHoldFlag && VolumeDownKeyState >= 0)
 			VolumeDownHoldFlag = 0;
-		if (NextStationHoldFlag && NextStationKeyState >= 0) 
+		if (NextStationHoldFlag && NextStationKeyState >= 0)
 			NextStationHoldFlag = 0;
-		if (PrevStationHoldFlag && PrevStationKeyState >= 0) 
+		if (PrevStationHoldFlag && PrevStationKeyState >= 0)
 			PrevStationHoldFlag = 0;
 		if (SeekForwardHoldFlag && SeekForwardKeyState >= 0)
 			SeekForwardHoldFlag = 0;
 		if (SeekBackwardHoldFlag && SeekBackwardKeyState >= 0)
 			SeekBackwardHoldFlag = 0;
-	
-		if (ToggleRadioKeyState < 0 && !ToggleRadioHoldFlag)
-		{
+
+		if (ToggleRadioKeyState < 0 && !ToggleRadioHoldFlag) {
 			ToggleRadioHoldFlag = 1;
 			Radio.TogglePlayer();
 		}
@@ -492,7 +466,6 @@ namespace
 		switch (a_msg->type) {
 		case SFSE::MessagingInterface::kPostLoad:
 			{
-			
 				if (const auto ui = RE::UI::GetSingleton(); ui) {
 					ui->RegisterSink<RE::MenuOpenCloseEvent>(OpenCloseSink::GetSingleton());
 				}
@@ -517,7 +490,6 @@ DLLEXPORT bool SFSEAPI SFSEPlugin_Load(const SFSE::LoadInterface* a_sfse)
 		Sleep(100);
 	}
 #endif
-
 
 	SFSE::Init(a_sfse, false);
 
