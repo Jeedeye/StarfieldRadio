@@ -4,3 +4,6 @@
 [submodule "extern/CommonLibSF"]
 	path = extern/CommonLibSF
 	url = https://github.com/Starfield-Reverse-Engineering/CommonLibSF.git
+[submodule "extern/extern/CommonLibSF"]
+	path = extern/extern/CommonLibSF
+	url = https://github.com/Starfield-Reverse-Engineering/CommonLibSF
